@@ -47,9 +47,20 @@ pkcs11_getattr_int(PKCS11_CTX * ctx, CK_SESSION_HANDLE session,
 
 	CHECK_FORK(ctx);
 
+	// first call to get the actual value length
 	templ.type = type;
+	templ.pValue = NULL;
+	templ.ulValueLen = 0;
+
+	rv = CRYPTOKI_call(ctx, C_GetAttributeValue(session, o, &templ, 1));
+	if (*size < templ.ulValueLen) {
+		// the size of the 'value' buffer is too small to hold requested data so bail out
+		fprintf(stderr, "ERROR: output buffer size too small, required size: %d\n", templ.ulValueLen);
+		return 1;
+	}
+
+	// set the buffer to hold value
 	templ.pValue = value;
-	templ.ulValueLen = *size;
 
 	rv = CRYPTOKI_call(ctx, C_GetAttributeValue(session, o, &templ, 1));
 	CRYPTOKI_checkerr(PKCS11_F_PKCS11_GETATTR, rv);
